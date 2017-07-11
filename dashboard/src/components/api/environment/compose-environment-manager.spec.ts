@@ -151,7 +151,7 @@ describe('ComposeEnvironmentManager', () => {
 
       // if there is no 'memoryLimitBytes' in attributes then mem_limit is returned
       delete environment.machines[someMachineName].attributes.memoryLimitBytes;
-      expect(memoryLimit).toEqual(2147483648);
+      expect(memoryLimit).toEqual('2147483648');
     });
 
     it('should update environment\'s recipe via machine\'s source', () => {
