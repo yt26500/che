@@ -8,23 +8,17 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.che.api.system.server;
+package org.eclipse.che.api.workspace.server;
 
-import org.eclipse.che.api.core.model.workspace.WorkspaceStatus;
 import org.eclipse.che.api.core.notification.EventService;
-import org.eclipse.che.api.core.notification.EventSubscriber;
-import org.eclipse.che.api.system.shared.event.service.SystemServiceItemStoppedEvent;
 import org.eclipse.che.api.workspace.server.WorkspaceManager;
-import org.eclipse.che.api.workspace.shared.dto.event.WorkspaceStatusEvent;
-import org.eclipse.che.dto.server.DtoFactory;
+import org.eclipse.che.api.workspace.server.WorkspaceServiceTermination;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.annotations.Listeners;
-import org.testng.annotations.Test;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 
 /**

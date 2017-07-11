@@ -367,6 +367,30 @@ public class WorkspaceRuntimes {
         return new EnvironmentImpl(environment);
     }
 
+    public boolean refuseWorkspacesStart() {
+        // TODO set flag
+        return false;
+    }
+
+    public void shutdown() {
+        // TODO shutdown
+    }
+
+    public Set<String> getRuntimesIds() {
+        // TODO get runtime ids
+        return null;
+    }
+
+    public boolean isAnyRunning() {
+        // TODO check if any running
+        return false;
+    }
+
+    public WorkspaceStatus getStatus(String workspaceId) {
+        // TODO get status of the workspace
+        return null;
+    }
+
     private class CleanupRuntimeOnAbnormalRuntimeStop implements EventSubscriber<RuntimeStatusEvent> {
         @Override
         public void onEvent(RuntimeStatusEvent event) {
@@ -395,62 +419,7 @@ public class WorkspaceRuntimes {
         }
     }
 
-//    /**
-//     * Removes all workspaces from the in-memory storage, while
-//     * {@link CheEnvironmentEngine} is responsible for environment destroying.
-//     */
-//    @PreDestroy
-//    @VisibleForTesting
-//    void cleanup() {
-//        isPreDestroyInvoked = true;
-//
-//        // wait existing tasks to complete
-//        sharedPool.terminateAndWait();
-//
-//        List<String> idsToStop;
-//        try (@SuppressWarnings("unused") CloseableLock l = locks.acquireWriteAllLock()) {
-//            idsToStop = workspaces.entrySet()
-//                                  .stream()
-//                                  .filter(e -> e.getValue().status != STOPPING)
-//                                  .map(Map.Entry::getKey)
-//                                  .collect(Collectors.toList());
-//            workspaces.clear();
-//        }
-//
-//        // nothing to stop
-//        if (idsToStop.isEmpty()) {
-//            return;
-//        }
-//
-//        LOG.info("Shutdown running workspaces, workspaces to shutdown '{}'", idsToStop.size());
-//        ExecutorService executor =
-//                Executors.newFixedThreadPool(2 * java.lang.Runtime.getRuntime().availableProcessors(),
-//                                             new ThreadFactoryBuilder().setNameFormat("StopEnvironmentsPool-%d")
-//                                                                       .setDaemon(false)
-//                                                                       .build());
-//        for (String id : idsToStop) {
-//            executor.execute(() -> {
-//                try {
-//                    networks.stop(id);
-//                } catch (Exception x) {
-//                    LOG.error(x.getMessage(), x);
-//                }
-//            });
-//        }
-//
-//        executor.shutdown();
-//        try {
-//            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-//                executor.shutdownNow();
-//                if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
-//                    LOG.error("Unable terminate machines pool");
-//                }
-//            }
-//        } catch (InterruptedException e) {
-//            executor.shutdownNow();
-//            Thread.currentThread().interrupt();
-//        }
-//    }
+
 //
 //    private void ensurePreDestroyIsNotExecuted() throws ServerException {
 //        if (isPreDestroyInvoked) {

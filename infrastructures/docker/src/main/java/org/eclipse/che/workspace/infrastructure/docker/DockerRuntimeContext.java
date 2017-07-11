@@ -26,7 +26,12 @@ import org.eclipse.che.workspace.infrastructure.docker.model.DockerEnvironment;
 import javax.inject.Inject;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriBuilderException;
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
 import java.util.List;
 
 import static org.eclipse.che.workspace.infrastructure.docker.output.OutputEndpoint.OUTPUT_WEBSOCKET_ENDPOINT_BASE;
