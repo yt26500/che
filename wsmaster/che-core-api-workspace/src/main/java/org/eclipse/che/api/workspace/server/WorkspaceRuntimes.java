@@ -11,6 +11,8 @@
 package org.eclipse.che.api.workspace.server;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.NotFoundException;
@@ -33,7 +35,9 @@ import org.eclipse.che.api.workspace.server.spi.RuntimeInfrastructure;
 import org.eclipse.che.api.workspace.shared.dto.event.RuntimeStatusEvent;
 import org.eclipse.che.api.workspace.shared.dto.event.WorkspaceStatusEvent;
 import org.eclipse.che.commons.env.EnvironmentContext;
+import org.eclipse.che.commons.lang.concurrent.StripedLocks;
 import org.eclipse.che.commons.lang.concurrent.ThreadLocalPropagateContext;
+import org.eclipse.che.commons.lang.concurrent.Unlocker;
 import org.eclipse.che.commons.subject.Subject;
 import org.eclipse.che.dto.server.DtoFactory;
 import org.slf4j.Logger;
@@ -48,6 +52,10 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
@@ -74,6 +82,10 @@ public class WorkspaceRuntimes {
     private final ConcurrentMap<String, RuntimeState> runtimes;
     private final EventService                        eventService;
     private final WorkspaceSharedPool                 sharedPool;
+    private final StripedLocks                        locks;
+
+    private final AtomicBoolean isShutdown = new AtomicBoolean(false);
+    private final AtomicBoolean isStartRefused = new AtomicBoolean(false);
 
     @Inject
     public WorkspaceRuntimes(EventService eventService,
@@ -82,6 +94,8 @@ public class WorkspaceRuntimes {
         this.runtimes = new ConcurrentHashMap<>();
         this.eventService = eventService;
         this.sharedPool = sharedPool;
+        // 16 - experimental value for stripes count, it comes from default hash map size
+        this.locks = new StripedLocks(16);
 
         // TODO: consider extracting to a strategy interface(1. pick the last, 2. fail with conflict)
         Map<String, RuntimeInfrastructure> tmp = new HashMap<>();
@@ -198,7 +212,13 @@ public class WorkspaceRuntimes {
 
         Subject subject = EnvironmentContext.getCurrent().getSubject();
         RuntimeIdentity runtimeId = new RuntimeIdentityImpl(workspaceId, envName, subject.getUserName());
-        try {
+        try (@SuppressWarnings("unused") Unlocker u = locks.writeLock(workspaceId)) {
+            checkIsNotTerminated("start the workspace");
+            if (isStartRefused.get()) {
+                throw new ConflictException(format("Start of the workspace '%s' is rejected by the system, " +
+                                                   "no more workspaces are allowed to start",
+                                                   workspace.getConfig().getName()));
+            }
             RuntimeContext runtimeContext = infra.prepare(runtimeId, environment);
 
             InternalRuntime runtime = runtimeContext.getRuntime();
@@ -241,6 +261,12 @@ public class WorkspaceRuntimes {
         } catch (InfrastructureException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new ServerException(e.getLocalizedMessage(), e);
+        }
+    }
+
+    private void checkIsNotTerminated(String operation) throws ServerException {
+        if (isShutdown.get()) {
+            throw new ServerException("Could not " + operation + " because workspaces service is being terminated");
         }
     }
 
@@ -368,12 +394,60 @@ public class WorkspaceRuntimes {
     }
 
     public boolean refuseWorkspacesStart() {
-        // TODO set flag
-        return false;
+        return isStartRefused.compareAndSet(false, true);
     }
 
     public void shutdown() {
-        // TODO shutdown
+        if (!isShutdown.compareAndSet(false, true)) {
+            throw new IllegalStateException("Workspace runtimes service shutdown has been already called");
+        }
+
+        Set<RuntimeState> stopped;
+        try (@SuppressWarnings("unused") Unlocker u = locks.writeAllLock()) {
+            stopped = ImmutableSet.copyOf(runtimes.values());
+            runtimes.clear();
+        }
+
+        if (!stopped.isEmpty()) {
+            LOG.info("Shutdown running environments, environments to stop: '{}'", stopped.size());
+            ExecutorService executor =
+                    Executors.newFixedThreadPool(2 * Runtime.getRuntime().availableProcessors(),
+                                                 new ThreadFactoryBuilder().setNameFormat("StopEnvironmentsPool-%d")
+                                                                           .setDaemon(false)
+                                                                           .build());
+
+
+            for (RuntimeState state : stopped) {
+                executor.submit(() -> {
+                    try {
+                        state.runtime.stop(null);
+                        // might be already stopped
+                    } catch (Exception x) {
+                        LOG.error(x.getMessage(), x);
+                    }
+                });
+            }
+
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                    if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                        LOG.error("Unable to stop runtimes termination pool");
+                    }
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+
+
+
+
+
+
+
     }
 
     public Set<String> getRuntimesIds() {

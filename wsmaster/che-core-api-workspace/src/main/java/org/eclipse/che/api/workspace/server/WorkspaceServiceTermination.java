@@ -16,7 +16,6 @@ import org.eclipse.che.api.core.notification.EventSubscriber;
 import org.eclipse.che.api.system.server.ServiceTermination;
 import org.eclipse.che.api.system.shared.event.service.SystemServiceItemStoppedEvent;
 import org.eclipse.che.api.system.shared.event.service.SystemServiceStoppedEvent;
-import org.eclipse.che.api.workspace.server.WorkspaceManager;
 import org.eclipse.che.api.workspace.shared.dto.event.WorkspaceStatusEvent;
 
 import javax.inject.Inject;
@@ -57,8 +56,7 @@ public class WorkspaceServiceTermination implements ServiceTermination {
     private class WorkspaceStoppedEventsPropagator implements EventSubscriber<WorkspaceStatusEvent> {
 
         private final int           totalRunning;
-        private final
-        AtomicInteger currentlyStopped;
+        private final AtomicInteger currentlyStopped;
 
         private WorkspaceStoppedEventsPropagator() {
             this.totalRunning = workspaceManager.getRunningWorkspacesIds().size();
