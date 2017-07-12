@@ -76,9 +76,9 @@ export class WorkspaceMachinesController {
    */
   private workspaceDetails: che.IWorkspace;
   /**
-   * Copy of workspace details.
+   * Workspace config.
    */
-  private copyWorkspaceDetails: che.IWorkspace;
+  private workspaceConfig: che.IWorkspaceConfig;
   /**
    * Environment.
    */
@@ -146,11 +146,11 @@ export class WorkspaceMachinesController {
     if (workspaceConfig === null) {
       return;
     }
-    if (this.copyWorkspaceDetails && this.copyWorkspaceDetails.config && angular.equals(this.workspaceDetails.config, this.copyWorkspaceDetails.config)) {
+    if (this.workspaceConfig && angular.equals(this.workspaceConfig, workspaceConfig)) {
       return;
     }
     this.environment = workspaceConfig ? workspaceConfig.environments[workspaceConfig.defaultEnv] : null;
-    if (!this.environment) {
+    if (!this.environment || !this.environment.recipe || !this.environment.recipe.type) {
       return;
     }
     this.environmentManager = this.cheEnvironmentRegistry.getEnvironmentManager(this.environment.recipe.type);
@@ -172,7 +172,7 @@ export class WorkspaceMachinesController {
         };
       });
     }
-    this.copyWorkspaceDetails = angular.copy(this.workspaceDetails);
+    this.workspaceConfig = angular.copy(workspaceConfig);
     this.workspaceOnChange();
     this.cheListHelper.setList(this.machinesList, 'name', (machine: machine): boolean => {
       return !machine.isDev;
@@ -183,14 +183,15 @@ export class WorkspaceMachinesController {
    * Update environment.
    */
   updateEnvironment(): void {
-    this.workspaceDetails.config.environments[this.workspaceDetails.config.defaultEnv] = this.environmentManager.getEnvironment(this.environment, this.machines);
+    const environment = this.environmentManager.getEnvironment(this.environment, this.machines);
+    this.workspaceDetails.config.environments[this.workspaceDetails.config.defaultEnv] = environment;
   }
 
   /**
    * Changes DEV machine by name.
    *
    * @param machineName {string}
-   * @returns {IPromise<T>}
+   * @returns {IPromise<any>}
    */
   changeDevMachine(machineName: string): ng.IPromise<any> {
     const deferred = this.$q.defer();
@@ -346,6 +347,9 @@ export class WorkspaceMachinesController {
    * @param memoryLimitGBytes {number} amount of ram in GB
    */
   onRamChange(name: string, memoryLimitGBytes: number): void {
+    if (!this.machines || !memoryLimitGBytes) {
+      return;
+    }
     const memoryLimitBytesWithUnit = this.$filter('changeMemoryUnit')(memoryLimitGBytes, [MemoryUnit[MemoryUnit.GB], MemoryUnit[MemoryUnit.B]]);
     const memoryLimitBytes = this.getNumber(memoryLimitBytesWithUnit);
     const machine: IEnvironmentManagerMachine = this.machines.find((machine: IEnvironmentManagerMachine) => {

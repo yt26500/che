@@ -36,13 +36,7 @@ export class EditMachineDialogController {
   private machineName: string;
   private usedMachinesNames: Array<string>;
   private environment: che.IWorkspaceEnvironment;
-  private editorOptions: {
-    lineWrapping: boolean,
-    lineNumbers: boolean,
-    matchBrackets: boolean,
-    mode: string,
-    onLoad: Function
-  };
+  private editorMode: string;
 
   /**
    * Default constructor that is using resource
@@ -60,15 +54,7 @@ export class EditMachineDialogController {
 
     this.environmentManager = this.cheEnvironmentRegistry.getEnvironmentManager(this.environment.recipe.type);
 
-    this.editorOptions = {
-      lineWrapping: true,
-      lineNumbers: true,
-      matchBrackets: true,
-      mode: this.environmentManager.editorMode,
-      onLoad: (editor: any) => {
-        editor.refresh();
-      }
-    };
+    this.editorMode = this.isCompose() ? this.environmentManager.editorMode : 'application/json';
 
     if (this.isAdd) {
       if (!this.isCompose()) {
@@ -94,12 +80,8 @@ export class EditMachineDialogController {
    * Update machine RAM.
    */
   updateMachineRAM(): void {
-    if (!this.isCompose()) {
+    if (!this.isCompose() || !this.machineRAM) {
       return;
-    }
-    const machine = this.environment.machines[this.machine.name];
-    if (machine && machine.attributes && machine. attributes.memoryLimitBytes) {
-      delete  machine.attributes.memoryLimitBytes;
     }
     this.machine.recipe.mem_limit = this.machineRAM;
     this._parseMachineRecipe();
@@ -125,9 +107,13 @@ export class EditMachineDialogController {
 
   /**
    * Check if recipe is valid.
-   * @returns {boolean}
+   * @returns {che.IValidation}
    */
-  isRecipeValid(): boolean {
+  isRecipeValid(): che.IValidation {
+    const recipeValidation = this._stringifyMachineRecipe();
+    if (!recipeValidation.isValid) {
+      return recipeValidation;
+    }
     let recipe: che.IRecipe;
     if (this.isCompose()) {
       const recipeServices = jsyaml.load(this.environment.recipe.content);
@@ -137,10 +123,8 @@ export class EditMachineDialogController {
     } else {
       recipe = this.machine.recipe;
     }
-    const {isValid, errors} = this.stackValidationService.getRecipeValidation(recipe);
-    this.errors = errors;
 
-    return isValid;
+    return this.stackValidationService.getRecipeValidation(recipe);
   }
 
   /**
@@ -168,6 +152,13 @@ export class EditMachineDialogController {
       if (this.isAdd) {
         this.environmentManager.addMachine(this.environment, this.machine);
       } else {
+        const mem_limit = 'mem_limit';
+        if (this.copyRecipe && this.copyRecipe[mem_limit] !== this.machine.recipe[mem_limit]) {
+          const machine = this.environment.machines[this.machine.name];
+          if (machine && machine.attributes && machine.attributes.memoryLimitBytes) {
+            delete  machine.attributes.memoryLimitBytes;
+          }
+        }
         const recipe: IComposeRecipe = jsyaml.load(this.environment.recipe.content);
         recipe.services[this.machine.name] = this.machine.recipe;
         this.environment.recipe.content = jsyaml.safeDump(recipe, {'indent': 1});
@@ -198,7 +189,7 @@ export class EditMachineDialogController {
     }
   }
 
-  _stringifyMachineRecipe(): void {
+  _stringifyMachineRecipe(): che.IValidation {
     try {
       if (this.isCompose()) {
         this.machine.recipe = jsyaml.load(this.machineRecipeScript);
@@ -208,9 +199,9 @@ export class EditMachineDialogController {
       } else {
         this.machine.recipe = angular.fromJson(this.machineRecipeScript);
       }
-      this.isRecipeValid();
+      return {isValid: true, errors: []};
     } catch (error) {
-      this.errors = [error.toString()];
+      return {isValid: false, errors: [error.toString()]};
     }
   }
 }

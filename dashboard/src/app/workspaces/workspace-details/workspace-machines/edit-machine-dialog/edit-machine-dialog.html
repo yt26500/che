@@ -36,18 +36,10 @@
           <label>Recipe:</label>
         </div>
         <div flex="85">
-          <ui-codemirror ui-codemirror="editMachineDialogController.editorOptions"
-                         ng-model-options="{ updateOn: 'default blur', debounce: { 'default': 500, 'blur': 0 } }"
-                         data-ng-model="editMachineDialogController.machineRecipeScript"
-                         ng-change="editMachineDialogController._stringifyMachineRecipe()"></ui-codemirror>
-          <a href="/docs/workspace/recipes/index.html" target="_blank">
-            Recipe Structure
-          </a>
-          <div class="recipe-errors-container">
-          <span ng-repeat="error in editMachineDialogController.errors">
-            {{error}}
-          </span>
-          </div>
+          <che-editor editor-content="editMachineDialogController.machineRecipeScript"
+                      editor-state="editorState"
+                      validator="editMachineDialogController.isRecipeValid()"
+                      editor-mode="{{editMachineDialogController.editorMode}}"></che-editor>
         </div>
       </div>
     </div>
@@ -56,7 +48,7 @@
     </che-button-notice>
     <che-button-primary che-button-title="{{editMachineDialogController.isAdd ? 'Add' : 'Edit'}}"
                         ng-click="editMachineDialogController.updateMachine()"
-                        ng-disabled="editMachineForm.$invalid || !editMachineDialogController.isChange() || editMachineDialogController.errors.length">
+                        ng-disabled="editMachineForm.$invalid || !editMachineDialogController.isChange() || !editorState.isValid">
     </che-button-primary>
   </ng-form>
 </che-popup>

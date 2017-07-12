@@ -27,7 +27,7 @@ import {CheUser} from '../../../components/api/che-user.factory';
  * @author Oleksii Kurinnyi
  */
 
-enum Tab {Machines, Settings, Config, Runtime}
+enum Tab {Overview, Machines, Settings, Config, Runtime}
 
 export class WorkspaceDetailsController {
   $location: ng.ILocationService;
@@ -38,7 +38,7 @@ export class WorkspaceDetailsController {
   $rootScope: ng.IRootScopeService;
   $scope: ng.IScope;
   $timeout: ng.ITimeoutService;
-  lodash: _.LoDashStatic;
+  lodash: any;
   cheEnvironmentRegistry: CheEnvironmentRegistry;
   cheNotification: CheNotification;
   cheWorkspace: CheWorkspace;
@@ -84,7 +84,7 @@ export class WorkspaceDetailsController {
               $route: ng.route.IRouteService, $rootScope: ng.IRootScopeService, $scope: ng.IScope, $timeout: ng.ITimeoutService,
               cheEnvironmentRegistry: CheEnvironmentRegistry, cheNotification: CheNotification, cheWorkspace: CheWorkspace,
               ideSvc: IdeSvc, workspaceDetailsService: WorkspaceDetailsService, cheNamespaceRegistry: CheNamespaceRegistry,
-              confirmDialogService: ConfirmDialogService, lodash: _.LoDashStatic, cheUser: CheUser) {
+              confirmDialogService: ConfirmDialogService, lodash: any, cheUser: CheUser) {
     this.$log = $log;
     this.$location = $location;
     this.$mdDialog = $mdDialog;
@@ -157,9 +157,7 @@ export class WorkspaceDetailsController {
     if (angular.isDefined(tabIndex)) {
       param.tab = Tab[tabIndex];
     }
-    if (angular.isUndefined(this.$location.search().tab)) {
-      this.$location.replace().search(param);
-    } else {
+    if (angular.isDefined(this.$location.search().tab)) {
       this.$location.search(param);
     }
   }
@@ -234,7 +232,7 @@ export class WorkspaceDetailsController {
         defer.resolve();
       } else {
         this.cheUser.fetchUser().then(() => {
-          this.namespaceId = user.name;
+          this.namespaceId = this.cheUser.getUser().name;
           defer.resolve();
         }, (error: any) => {
           defer.reject(error);
@@ -243,7 +241,7 @@ export class WorkspaceDetailsController {
     }
     defer.promise.then(() => {
       return this.getOrFetchWorkspacesByNamespace();
-    }).catch((error: any) => {
+    }).catch(() => {
       // user is not authorized to get workspaces by namespace
       return this.getOrFetchWorkspaces();
     }).then((workspaces: Array<che.IWorkspace>) => {
@@ -389,8 +387,6 @@ export class WorkspaceDetailsController {
 
   /**
    * Updates name of workspace in config.
-   *
-   * @param form {any}
    */
   updateName(): void {
     if (this.workspaceDetails && this.workspaceDetails.config) {
@@ -403,7 +399,7 @@ export class WorkspaceDetailsController {
   /**
    * Returns current status of workspace.
    *
-   * @returns {String}
+   * @returns {string}
    */
   getWorkspaceStatus(): string {
     if (this.isCreationFlow) {
