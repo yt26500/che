@@ -427,14 +427,14 @@ public class WorkspaceManager {
     private void stopRunningWorkspacesNormally() throws InterruptedException {
         if (runtimes.isAnyRunning()) {
 
-            // getting all the running or starting workspaces
-            ArrayList<WorkspaceImpl> runningOrStarting = new ArrayList<>();
+            // getting all the running workspaces
+            ArrayList<WorkspaceImpl> running = new ArrayList<>();
             for (String workspaceId : runtimes.getRuntimesIds()) {
                 try {
                     WorkspaceImpl workspace = workspaceDao.get(workspaceId);
                     workspace.setStatus(runtimes.getStatus(workspaceId));
-                    if (workspace.getStatus() == WorkspaceStatus.RUNNING || workspace.getStatus() == WorkspaceStatus.STARTING) {
-                        runningOrStarting.add(workspace);
+                    if (workspace.getStatus() == WorkspaceStatus.RUNNING) {
+                        running.add(workspace);
                     }
                 } catch (NotFoundException | ServerException x) {
                     if (runtimes.hasRuntime(workspaceId)) {
@@ -446,8 +446,8 @@ public class WorkspaceManager {
             }
 
             // stopping them asynchronously
-            CountDownLatch stopLatch = new CountDownLatch(runningOrStarting.size());
-            for (WorkspaceImpl workspace : runningOrStarting) {
+            CountDownLatch stopLatch = new CountDownLatch(running.size());
+            for (WorkspaceImpl workspace : running) {
                 try {
                     stopAsync(workspace, null).whenComplete((res, ex) -> stopLatch.countDown());
                 } catch (Exception x) {

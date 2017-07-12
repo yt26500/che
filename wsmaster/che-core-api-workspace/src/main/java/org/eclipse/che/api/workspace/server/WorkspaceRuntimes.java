@@ -280,7 +280,7 @@ public class WorkspaceRuntimes {
      * @param workspaceId
      *         identifier of workspace which should be stopped
      * @throws NotFoundException
-     *         when workspace with specified identifier is not running
+     *         when workspace with specified identifier does not have runtime
      * @throws ConflictException
      *         when running workspace status is different from {@link WorkspaceStatus#RUNNING}
      * @throws InfrastructureException
@@ -290,7 +290,7 @@ public class WorkspaceRuntimes {
     public void stop(String workspaceId, Map<String, String> options) throws NotFoundException,
                                                                              InfrastructureException,
                                                                              ConflictException {
-        RuntimeState state = runtimes.get(workspaceId);
+        final RuntimeState state = runtimes.get(workspaceId);
         if (state == null) {
             throw new NotFoundException("Workspace with id '" + workspaceId + "' is not running.");
         }
@@ -402,23 +402,23 @@ public class WorkspaceRuntimes {
             throw new IllegalStateException("Workspace runtimes service shutdown has been already called");
         }
 
-        Set<RuntimeState> stopped;
+        final Set<RuntimeState> states;
         try (@SuppressWarnings("unused") Unlocker u = locks.writeAllLock()) {
-            stopped = ImmutableSet.copyOf(runtimes.values());
+            states = ImmutableSet.copyOf(runtimes.values());
             runtimes.clear();
         }
 
-        if (!stopped.isEmpty()) {
-            LOG.info("Shutdown running environments, environments to stop: '{}'", stopped.size());
-            ExecutorService executor =
+        if (!states.isEmpty()) {
+            LOG.info("Shutdown running environments, environments to stop: '{}'", states.size());
+            ExecutorService pool =
                     Executors.newFixedThreadPool(2 * Runtime.getRuntime().availableProcessors(),
                                                  new ThreadFactoryBuilder().setNameFormat("StopEnvironmentsPool-%d")
                                                                            .setDaemon(false)
                                                                            .build());
 
 
-            for (RuntimeState state : stopped) {
-                executor.submit(() -> {
+            for (RuntimeState state : states) {
+                pool.submit(() -> {
                     try {
                         state.runtime.stop(null);
                         // might be already stopped
@@ -428,16 +428,16 @@ public class WorkspaceRuntimes {
                 });
             }
 
-            executor.shutdown();
+            pool.shutdown();
             try {
-                if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
-                    executor.shutdownNow();
-                    if (!executor.awaitTermination(60, TimeUnit.SECONDS)) {
+                if (!pool.awaitTermination(30, TimeUnit.SECONDS)) {
+                    pool.shutdownNow();
+                    if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
                         LOG.error("Unable to stop runtimes termination pool");
                     }
                 }
             } catch (InterruptedException e) {
-                executor.shutdownNow();
+                pool.shutdownNow();
                 Thread.currentThread().interrupt();
             }
         }
