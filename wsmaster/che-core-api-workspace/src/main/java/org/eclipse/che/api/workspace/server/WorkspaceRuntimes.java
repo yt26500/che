@@ -12,7 +12,6 @@ package org.eclipse.che.api.workspace.server;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.NotFoundException;
@@ -52,9 +51,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.lang.String.format;
@@ -84,7 +80,6 @@ public class WorkspaceRuntimes {
     private final WorkspaceSharedPool                 sharedPool;
     private final StripedLocks                        locks;
 
-    private final AtomicBoolean isShutdown = new AtomicBoolean(false);
     private final AtomicBoolean isStartRefused = new AtomicBoolean(false);
 
     @Inject
@@ -213,7 +208,6 @@ public class WorkspaceRuntimes {
         Subject subject = EnvironmentContext.getCurrent().getSubject();
         RuntimeIdentity runtimeId = new RuntimeIdentityImpl(workspaceId, envName, subject.getUserName());
         try (@SuppressWarnings("unused") Unlocker u = locks.writeLock(workspaceId)) {
-            checkIsNotTerminated("start the workspace");
             if (isStartRefused.get()) {
                 throw new ConflictException(format("Start of the workspace '%s' is rejected by the system, " +
                                                    "no more workspaces are allowed to start",
@@ -261,12 +255,6 @@ public class WorkspaceRuntimes {
         } catch (InfrastructureException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new ServerException(e.getLocalizedMessage(), e);
-        }
-    }
-
-    private void checkIsNotTerminated(String operation) throws ServerException {
-        if (isShutdown.get()) {
-            throw new ServerException("Could not " + operation + " because workspaces service is being terminated");
         }
     }
 
@@ -397,72 +385,31 @@ public class WorkspaceRuntimes {
         return isStartRefused.compareAndSet(false, true);
     }
 
-    public void shutdown() {
-        if (!isShutdown.compareAndSet(false, true)) {
-            throw new IllegalStateException("Workspace runtimes service shutdown has been already called");
-        }
-
-        final Set<RuntimeState> states;
-        try (@SuppressWarnings("unused") Unlocker u = locks.writeAllLock()) {
-            states = ImmutableSet.copyOf(runtimes.values());
-            runtimes.clear();
-        }
-
-        if (!states.isEmpty()) {
-            LOG.info("Shutdown running environments, environments to stop: '{}'", states.size());
-            ExecutorService pool =
-                    Executors.newFixedThreadPool(2 * Runtime.getRuntime().availableProcessors(),
-                                                 new ThreadFactoryBuilder().setNameFormat("StopEnvironmentsPool-%d")
-                                                                           .setDaemon(false)
-                                                                           .build());
-
-
-            for (RuntimeState state : states) {
-                pool.submit(() -> {
-                    try {
-                        state.runtime.stop(null);
-                        // might be already stopped
-                    } catch (Exception x) {
-                        LOG.error(x.getMessage(), x);
-                    }
-                });
-            }
-
-            pool.shutdown();
-            try {
-                if (!pool.awaitTermination(30, TimeUnit.SECONDS)) {
-                    pool.shutdownNow();
-                    if (!pool.awaitTermination(60, TimeUnit.SECONDS)) {
-                        LOG.error("Unable to stop runtimes termination pool");
-                    }
-                }
-            } catch (InterruptedException e) {
-                pool.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
-
-
-
-
-
-
-
-    }
-
     public Set<String> getRuntimesIds() {
-        // TODO get runtime ids
-        return null;
+        return ImmutableSet.copyOf(runtimes.keySet());
     }
 
     public boolean isAnyRunning() {
-        // TODO check if any running
-        return false;
+        return !runtimes.isEmpty();
     }
 
+    /**
+     * Return status of the workspace.
+     *
+     * @param workspaceId
+     *         ID of requested workspace
+     * @return {@link WorkspaceStatus#STOPPED} if workspace is not running or,
+     * the status of workspace runtime otherwise
+     */
     public WorkspaceStatus getStatus(String workspaceId) {
-        // TODO get status of the workspace
-        return null;
+        requireNonNull(workspaceId, "Required non-null workspace id");
+        try (@SuppressWarnings("unused") Unlocker u = locks.readLock(workspaceId)) {
+            RuntimeState state = runtimes.get(workspaceId);
+            if (state == null) {
+                return WorkspaceStatus.STOPPED;
+            }
+            return state.status;
+        }
     }
 
     private class CleanupRuntimeOnAbnormalRuntimeStop implements EventSubscriber<RuntimeStatusEvent> {

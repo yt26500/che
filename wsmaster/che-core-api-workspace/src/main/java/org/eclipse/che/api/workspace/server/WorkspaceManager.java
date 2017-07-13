@@ -408,7 +408,6 @@ public class WorkspaceManager {
             throw new IllegalStateException("Workspace service shutdown has been already called");
         }
         stopRunningWorkspacesNormally();
-        runtimes.shutdown();
         sharedPool.shutdown();
     }
 
