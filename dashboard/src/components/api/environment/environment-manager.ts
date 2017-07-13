@@ -254,9 +254,9 @@ export abstract class EnvironmentManager {
   getMemoryLimit(machine: IEnvironmentManagerMachine): number {
     if (machine && machine.attributes && machine.attributes.memoryLimitBytes) {
       if (angular.isString(machine.attributes.memoryLimitBytes)) {
-        return parseInt(machine.attributes.memoryLimitBytes, 10);
+        return parseInt(<string>machine.attributes.memoryLimitBytes, 10);
       }
-      return machine.attributes.memoryLimitBytes;
+      return <number>machine.attributes.memoryLimitBytes;
     }
 
     return -1;

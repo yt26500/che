@@ -31,6 +31,8 @@
       </md-tab-label>
       <md-tab-body>
 
+
+
       </md-tab-body>
     </md-tab>
 
@@ -188,7 +190,9 @@
 
     <!-- Other tabs -->
     <md-tab ng-if="workspaceDetailsController.isCreationFlow === false"
-            ng-repeat="section in workspaceDetailsController.getPages()">
+            ng-init="workspaceDetailsController.addTab(section.title);"
+            md-on-select="workspaceDetailsController.onSelectTab(workspaceDetailsController.tab[section.title]);"
+            ng-repeat="section in workspaceDetailsController.getPages() track by $index" >
       <md-tab-label>
         <span class="che-tab-label-title">{{section.title}}</span>
       </md-tab-label>
