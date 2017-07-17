@@ -1,3 +1,5 @@
+$che-label-container-description-color = #9299a0
+
 .che-label-container
   padding 25px 0
   border-bottom 1px solid $list-separator-color
@@ -6,17 +8,33 @@
     border-bottom none
 
   .che-label-container-label
-    min-width 220px
-    width 220px
+    min-width 250px
+    width 250px
 
   .che-label-container-label-name
     color $primary-color
     margin-right 10px
 
   .che-label-container-description
-    color $disabled-color
-    font-size 10px
-    margin-top 5px
+    display inline-block
+    cursor pointer
+    width 23px
+    height 23px
+    margin-left 15px
+    text-align center
+    color $white-color
+    border-radius 3px
+    background-color $che-label-container-description-color
+    border 1px solid $che-label-container-description-color
+    &:hover
+      background-color $primary-color
+      border-color $primary-color
+    .fa-question
+      padding 0 !important
+      &:before
+        font-size 14px
+        position relative
+        top 1px
 
   .che-label-container-divider
     border-bottom 1px solid $list-separator-color
@@ -28,3 +46,11 @@
     .che-label-container-label
       min-width 150px
       width 150px
+
+.che-label-container-popover
+  max-width 185px
+  margin-top 15px
+  color $white-color
+  background-color $che-black-color
+  .arrow:after
+    border-bottom-color $che-black-color !important
