@@ -27,8 +27,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-import static java.lang.String.format;
 import static java.util.stream.Collectors.toMap;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -42,7 +42,7 @@ public abstract class InternalRuntime <T extends RuntimeContext> implements Runt
     private static final Logger LOG = getLogger(InternalRuntime.class);
     private final T                    context;
     private final URLRewriter          urlRewriter;
-    private final List<Warning>        warnings = new ArrayList<>();
+    private final List<Warning>        warnings = new CopyOnWriteArrayList<>();
     private       WorkspaceStatus      status;
 
     public InternalRuntime(T context, URLRewriter urlRewriter, boolean running) {
@@ -131,21 +131,16 @@ public abstract class InternalRuntime <T extends RuntimeContext> implements Runt
      *         when any other error occurs
      */
     public final void stop(Map<String, String> stopOptions) throws InfrastructureException {
-        if (this.status != WorkspaceStatus.RUNNING) {
+        if (this.status != WorkspaceStatus.RUNNING && this.status != WorkspaceStatus.STARTING) {
             throw new StateException("The environment must be running");
         }
         status = WorkspaceStatus.STOPPING;
 
-        // TODO spi what to do in exception appears here?
         try {
             internalStop(stopOptions);
-        } catch (InternalInfrastructureException e) {
-            LOG.error(format("Error occurs on stop of workspace %s. Error: " + e.getLocalizedMessage(),
-                             context.getIdentity().getWorkspaceId()), e);
-        } catch (InfrastructureException e) {
-            LOG.debug(e.getLocalizedMessage(), e);
+        } finally {
+            status = WorkspaceStatus.STOPPED;
         }
-        status = WorkspaceStatus.STOPPED;
     }
 
     protected abstract void internalStop(Map<String, String> stopOptions) throws InfrastructureException;

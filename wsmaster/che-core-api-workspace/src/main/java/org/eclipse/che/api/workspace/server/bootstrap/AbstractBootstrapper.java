@@ -16,6 +16,7 @@ import org.eclipse.che.api.core.notification.EventService;
 import org.eclipse.che.api.core.notification.EventSubscriber;
 import org.eclipse.che.api.workspace.server.OutputEndpoint;
 import org.eclipse.che.api.workspace.server.spi.InfrastructureException;
+import org.eclipse.che.api.workspace.server.spi.RuntimeStartInterruptedException;
 import org.eclipse.che.api.workspace.shared.dto.RuntimeIdentityDto;
 import org.eclipse.che.api.workspace.shared.dto.event.BootstrapperStatusEvent;
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ public abstract class AbstractBootstrapper {
     private final EventSubscriber<BootstrapperStatusEvent>   bootstrapperStatusListener;
     private final String                                     installerEndpoint;
     private final String                                     outputEndpoint;
+    private final RuntimeIdentity                            runtimeIdentity;
     private       CompletableFuture<BootstrapperStatusEvent> finishEventFuture;
 
     public AbstractBootstrapper(String machineName,
@@ -55,6 +57,7 @@ public abstract class AbstractBootstrapper {
         this.eventService = eventService;
         this.installerEndpoint = websocketBaseEndpoint + InstallerEndpoint.INSTALLER_WEBSOCKET_ENDPOINT_BASE;
         this.outputEndpoint = websocketBaseEndpoint + OutputEndpoint.OUTPUT_WEBSOCKET_ENDPOINT_BASE;
+        this.runtimeIdentity = runtimeIdentity;
         this.bootstrapperStatusListener = event -> {
             BootstrapperStatus status = event.getStatus();
             //skip starting status event
@@ -107,8 +110,7 @@ public abstract class AbstractBootstrapper {
         } catch (TimeoutException e) {
             throw new InfrastructureException("Bootstrapping of machine " + machineName + " reached timeout");
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new InfrastructureException("Bootstrapping of machine " + machineName + " was interrupted");
+            throw new RuntimeStartInterruptedException(runtimeIdentity);
         } finally {
             eventService.unsubscribe(bootstrapperStatusListener, BootstrapperStatusEvent.class);
         }
