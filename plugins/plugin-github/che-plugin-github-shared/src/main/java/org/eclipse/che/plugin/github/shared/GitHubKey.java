@@ -1,35 +1,32 @@
-/*******************************************************************************
- * Copyright (c) 2012-2017 Codenvy, S.A.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+/**
+ * ***************************************************************************** Copyright (c)
+ * 2012-2017 Codenvy, S.A. All rights reserved. This program and the accompanying materials are made
+ * available under the terms of the Eclipse Public License v1.0 which accompanies this distribution,
+ * and is available at http://www.eclipse.org/legal/epl-v10.html
  *
- * Contributors:
- *   Codenvy, S.A. - initial API and implementation
- *******************************************************************************/
+ * <p>Contributors: Codenvy, S.A. - initial API and implementation
+ * *****************************************************************************
+ */
 package org.eclipse.che.plugin.github.shared;
 
 import org.eclipse.che.dto.shared.DTO;
 
-/**
- * @author Vladyslav Zhukovskii
- */
+/** @author Vladyslav Zhukovskii */
 @DTO
 public interface GitHubKey {
-    int getId();
+  int getId();
 
-    void setId(int id);
+  void setId(int id);
 
-    String getKey();
+  String getKey();
 
-    void setKey(String key);
+  void setKey(String key);
 
-    String getUrl();
+  String getUrl();
 
-    void setUrl(String url);
+  void setUrl(String url);
 
-    String getTitle();
+  String getTitle();
 
-    void setTitle(String title);
+  void setTitle(String title);
 }

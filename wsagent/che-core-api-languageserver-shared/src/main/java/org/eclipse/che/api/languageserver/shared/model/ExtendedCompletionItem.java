@@ -8,22 +8,22 @@ import org.eclipse.lsp4j.CompletionItem;
  * @author Thomas Mäder
  */
 public class ExtendedCompletionItem {
-    private String languageServerId;
-    private CompletionItem item;
+  private String languageServerId;
+  private CompletionItem item;
 
-    public CompletionItem getItem() {
-        return item;
-    }
-    
-    public void setItem(CompletionItem item) {
-        this.item = item;
-    }
-    
-    public String getLanguageServerId() {
-        return languageServerId;
-    }
-    
-    public void setLanguageServerId(String languageServerId) {
-        this.languageServerId = languageServerId;
-    }
+  public CompletionItem getItem() {
+    return item;
+  }
+
+  public void setItem(CompletionItem item) {
+    this.item = item;
+  }
+
+  public String getLanguageServerId() {
+    return languageServerId;
+  }
+
+  public void setLanguageServerId(String languageServerId) {
+    this.languageServerId = languageServerId;
+  }
 }

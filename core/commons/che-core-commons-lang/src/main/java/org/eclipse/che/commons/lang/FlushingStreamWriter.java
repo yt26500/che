@@ -1,10 +1,10 @@
 /*
  * CODENVY CONFIDENTIAL
  * __________________
- * 
- *  [2012] - [2015] Codenvy, S.A. 
+ *
+ *  [2012] - [2015] Codenvy, S.A.
  *  All Rights Reserved.
- * 
+ *
  * NOTICE:  All information contained herein is, and remains
  * the property of Codenvy S.A. and its suppliers,
  * if any.  The intellectual and technical concepts contained
@@ -33,10 +33,9 @@ package org.eclipse.che.commons.lang;
  * limitations under the License.
  */
 
-
-import java.io.OutputStreamWriter;
-import java.io.OutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 
 /**
  * Stream writer which flushes after each write operation.
@@ -45,22 +44,22 @@ import java.io.IOException;
  */
 public class FlushingStreamWriter extends OutputStreamWriter {
 
-    public FlushingStreamWriter(OutputStream out) {
-        super(out);
-    }
+  public FlushingStreamWriter(OutputStream out) {
+    super(out);
+  }
 
-    public void write(char[] cbuf, int off, int len) throws IOException {
-        super.write(cbuf, off, len);
-        flush();
-    }
+  public void write(char[] cbuf, int off, int len) throws IOException {
+    super.write(cbuf, off, len);
+    flush();
+  }
 
-    public void write(int c) throws IOException {
-        super.write(c);
-        flush();
-    }
+  public void write(int c) throws IOException {
+    super.write(c);
+    flush();
+  }
 
-    public void write(String str, int off, int len) throws IOException {
-        super.write(str, off, len);
-        flush();
-    }
+  public void write(String str, int off, int len) throws IOException {
+    super.write(str, off, len);
+    flush();
+  }
 }

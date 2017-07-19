@@ -9,13 +9,13 @@ import org.eclipse.lsp4j.WorkspaceSymbolParams;
  */
 public class ExtendedWorkspaceSymbolParams extends WorkspaceSymbolParams {
 
-    private String fileUri;
+  private String fileUri;
 
-    public String getFileUri() {
-        return fileUri;
-    }
+  public String getFileUri() {
+    return fileUri;
+  }
 
-    public void setFileUri(String fileUri) {
-        this.fileUri = fileUri;
-    }
+  public void setFileUri(String fileUri) {
+    this.fileUri = fileUri;
+  }
 }
