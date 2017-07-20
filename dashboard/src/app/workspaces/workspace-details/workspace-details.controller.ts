@@ -760,14 +760,13 @@ export class WorkspaceDetailsController {
     });
   }
 
-  stopWorkspace(): void {
-    let createSnapshot: boolean;
+  stopWorkspace(isCreateSnapshot?: boolean): void {
     if (this.getWorkspaceStatus() === 'STARTING') {
-      createSnapshot = false;
-    } else {
-      createSnapshot = this.getAutoSnapshot();
+      isCreateSnapshot = false;
+    } else if (!isCreateSnapshot) {
+      isCreateSnapshot = this.getAutoSnapshot();
     }
-    let promise = this.cheWorkspace.stopWorkspace(this.workspaceId, createSnapshot);
+    let promise = this.cheWorkspace.stopWorkspace(this.workspaceId, isCreateSnapshot);
 
     promise.catch((error: any) => {
       this.cheNotification.showError(error.data.message !== null ? error.data.message : 'Stop workspace failed.');
