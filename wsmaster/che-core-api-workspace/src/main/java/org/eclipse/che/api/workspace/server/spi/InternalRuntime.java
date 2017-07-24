@@ -143,11 +143,11 @@ public abstract class InternalRuntime <T extends RuntimeContext> implements Runt
      *         when any other error occurs
      */
     public final void stop(Map<String, String> stopOptions) throws InfrastructureException {
-        if (this.status != WorkspaceStatus.RUNNING && this.status != WorkspaceStatus.STARTING) {
+        if (status != WorkspaceStatus.RUNNING && status != WorkspaceStatus.STARTING) {
             throw new StateException("The environment must be running or starting");
         }
-        status = WorkspaceStatus.STOPPING;
 
+        status = WorkspaceStatus.STOPPING;
         try {
             internalStop(stopOptions);
         } finally {
