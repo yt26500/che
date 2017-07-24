@@ -269,12 +269,9 @@ public class WorkspaceRuntimes {
      *         when workspace with specified identifier is not running
      * @throws ConflictException
      *         when running workspace status is different from {@link WorkspaceStatus#RUNNING}
-     * @throws InfrastructureException
-     *         when any other error occurs during workspace stopping
      * @see WorkspaceStatus#STOPPING
      */
     public void stop(String workspaceId, Map<String, String> options) throws NotFoundException,
-                                                                             InfrastructureException,
                                                                              ConflictException {
         RuntimeState state = runtimes.get(workspaceId);
         if (state == null) {

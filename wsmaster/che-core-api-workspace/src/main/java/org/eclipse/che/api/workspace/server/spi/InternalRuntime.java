@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,14 +39,17 @@ import static org.slf4j.LoggerFactory.getLogger;
 public abstract class InternalRuntime <T extends RuntimeContext> implements Runtime {
 
     private static final Logger LOG = getLogger(InternalRuntime.class);
-    private final T                    context;
-    private final URLRewriter          urlRewriter;
-    private final List<Warning>        warnings = new CopyOnWriteArrayList<>();
-    private       WorkspaceStatus      status;
+
+    private final T             context;
+    private final URLRewriter   urlRewriter;
+    private final List<Warning> warnings;
+
+    private WorkspaceStatus status;
 
     public InternalRuntime(T context, URLRewriter urlRewriter, boolean running) {
         this.context = context;
         this.urlRewriter = urlRewriter != null ? urlRewriter : new URLRewriter.NoOpURLRewriter();
+        this.warnings = new CopyOnWriteArrayList<>();
         if (running) {
             status = WorkspaceStatus.RUNNING;
         }
@@ -128,11 +130,13 @@ public abstract class InternalRuntime <T extends RuntimeContext> implements Runt
      *         when the context can't be stopped because otherwise it would be in inconsistent status
      *         (e.g. stop(interrupt) might not be allowed during start)
      * @throws InfrastructureException
+     *         when runtime start was successfully cancelled
+     * @throws InfrastructureException
      *         when any other error occurs
      */
     public final void stop(Map<String, String> stopOptions) throws InfrastructureException {
         if (this.status != WorkspaceStatus.RUNNING && this.status != WorkspaceStatus.STARTING) {
-            throw new StateException("The environment must be running");
+            throw new StateException("The environment must be running or starting");
         }
         status = WorkspaceStatus.STOPPING;
 
@@ -143,6 +147,16 @@ public abstract class InternalRuntime <T extends RuntimeContext> implements Runt
         }
     }
 
+    /**
+     * Stops Runtime.
+     *
+     * @param stopOptions
+     *         workspace options that may be used on runtime stop
+     * @throws InfrastructureException
+     *         when start of the runtime was successfully interrupted
+     * @throws InfrastructureException
+     *         when any other error occurs
+     */
     protected abstract void internalStop(Map<String, String> stopOptions) throws InfrastructureException;
 
     /**
