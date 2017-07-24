@@ -230,7 +230,7 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
 
     @Override
     protected void internalStop(Map<String, String> stopOptions) throws InfrastructureException {
-        if (startSynchronizer.startThread != null) {
+        if (startSynchronizer.isStarted()) {
             startSynchronizer.interruptStartThread();
             try {
                 startSynchronizer.await();
@@ -583,6 +583,10 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
                 throw new InternalInfrastructureException("Docker infrastructure context of workspace already started");
             }
             startThread = Thread.currentThread();
+        }
+
+        public synchronized boolean isStarted() {
+            return startThread != null;
         }
 
         public synchronized void resetStartThread() {
