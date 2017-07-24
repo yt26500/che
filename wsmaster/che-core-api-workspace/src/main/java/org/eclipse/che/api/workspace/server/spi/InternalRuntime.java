@@ -124,8 +124,14 @@ public abstract class InternalRuntime <T extends RuntimeContext> implements Runt
     /**
      * Stops Runtime
      * Presumably can take some time so considered to launch in separate thread
+     * <p>Runtime will be stopped only if its state {@link WorkspaceStatus#RUNNING} or {@link WorkspaceStatus#STARTING}.
+     * When runtime state is {@link WorkspaceStatus#STARTING} then process of start must be cancelled
+     * and all the resources must be released.
+     * When runtime state is {@link WorkspaceStatus#RUNNING} then runtime must be normally stopped
+     * and  all the resources must be released.
      *
-     * @param stopOptions  options of workspace that may used in environment stop
+     * @param stopOptions
+     *         options of workspace that may used in environment stop
      * @throws StateException
      *         when the context can't be stopped because otherwise it would be in inconsistent status
      *         (e.g. stop(interrupt) might not be allowed during start)
@@ -148,7 +154,7 @@ public abstract class InternalRuntime <T extends RuntimeContext> implements Runt
     }
 
     /**
-     * Stops Runtime.
+     * Stops Runtime in an implementation specific way.
      *
      * @param stopOptions
      *         workspace options that may be used on runtime stop
