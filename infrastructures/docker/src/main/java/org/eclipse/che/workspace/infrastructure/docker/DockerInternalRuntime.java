@@ -224,7 +224,7 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
             }
             throw new InternalInfrastructureException(e.getLocalizedMessage(), e);
         } finally {
-            startSynchronizer.release();
+            startSynchronizer.resetStartThread();
         }
     }
 
@@ -292,7 +292,7 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
                                                                 getContext().getDevMachineName().equals(name),
                                                                 new AbnormalMachineStopHandlerImpl());
         try {
-            // reset interruption flag and destroy machine if start interrupted
+            // resetStartThread interruption flag and destroy machine if start interrupted
             checkInterruption();
             startSynchronizer.addMachine(name, machine);
         } catch (InfrastructureException e) {
@@ -585,7 +585,7 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
             startThread = Thread.currentThread();
         }
 
-        public synchronized void release() {
+        public synchronized void resetStartThread() {
             startThread = null;
             completionLatch.countDown();
         }
