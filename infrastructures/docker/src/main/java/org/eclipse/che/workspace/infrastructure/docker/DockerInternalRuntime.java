@@ -196,10 +196,8 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
                     } else {
                         startMachine(machineName, container);
                     }
-                    checkInterruption();
                     sendRunningEvent(machineName);
                 } catch (InfrastructureException e) {
-                    checkInterruption();
                     sendFailedEvent(machineName, e.getMessage());
                     throw e;
                 }
