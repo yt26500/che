@@ -33,10 +33,13 @@ import org.eclipse.che.ide.api.data.tree.settings.HasSettings;
 import org.eclipse.che.ide.api.parts.PerspectiveManager;
 import org.eclipse.che.ide.api.parts.base.BaseView;
 import org.eclipse.che.ide.api.parts.base.ToolButton;
+import org.eclipse.che.ide.api.resources.Container;
 import org.eclipse.che.ide.api.resources.Project;
 import org.eclipse.che.ide.api.resources.Resource;
+import org.eclipse.che.ide.api.vcs.VcsBranchProvider;
 import org.eclipse.che.ide.menu.ContextMenu;
 import org.eclipse.che.ide.project.node.SyntheticNode;
+import org.eclipse.che.ide.resources.tree.ContainerNode;
 import org.eclipse.che.ide.resources.tree.ResourceNode;
 import org.eclipse.che.ide.resources.tree.SkipHiddenNodesInterceptor;
 import org.eclipse.che.ide.FontAwesome;
@@ -331,10 +334,8 @@ public class ProjectExplorerViewImpl extends BaseView<ProjectExplorerView.Action
                 final Resource resource = ((ResourceNode)node).getData();
                 element.setAttribute("path", resource.getLocation().toString());
 
-                final Optional<Project> project = resource.getRelatedProject();
-                if (project.isPresent()) {
-                    element.setAttribute("project", project.get().getLocation().toString());
-                }
+                Project project = resource.getProject();
+                element.setAttribute("project", project.getLocation().toString());
             }
 
             if (node instanceof HasAction) {
@@ -351,6 +352,15 @@ public class ProjectExplorerViewImpl extends BaseView<ProjectExplorerView.Action
                        .setBackgroundColor(((HasAttributes)node).getAttributes().get(CUSTOM_BACKGROUND_FILL).get(0));
             }
 
+            if (node instanceof ContainerNode) {
+                Container container = ((ContainerNode)node).getData();
+                if (container instanceof Project) {
+                    String branch = container.getProject().getAttribute("git.current.branch.name");
+                    if (branch != null) {
+                        ((ContainerNode)node).getPresentation(true).setInfoText("(" + branch + ")");
+                    }
+                }
+            }
             return element;
         }
     }
