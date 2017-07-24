@@ -37,7 +37,6 @@ import org.eclipse.che.workspace.infrastructure.docker.bootstrap.DockerBootstrap
 import org.eclipse.che.workspace.infrastructure.docker.exception.SourceNotFoundException;
 import org.eclipse.che.workspace.infrastructure.docker.model.DockerBuildContext;
 import org.eclipse.che.workspace.infrastructure.docker.model.DockerContainerConfig;
-import org.eclipse.che.workspace.infrastructure.docker.model.DockerEnvironment;
 import org.eclipse.che.workspace.infrastructure.docker.monit.AbnormalMachineStopHandler;
 import org.eclipse.che.workspace.infrastructure.docker.monit.DockerMachineStopDetector;
 import org.eclipse.che.workspace.infrastructure.docker.server.ServerCheckerFactory;
@@ -49,14 +48,12 @@ import org.eclipse.che.workspace.infrastructure.docker.snapshot.SnapshotExceptio
 import org.eclipse.che.workspace.infrastructure.docker.snapshot.SnapshotImpl;
 import org.slf4j.Logger;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
@@ -178,33 +175,29 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
     protected void internalStart(Map<String, String> startOptions) throws InfrastructureException {
         startSynchronizer.setStartThread();
 
-        DockerEnvironment dockerEnvironment = getContext().getDockerEnvironment();
-        Queue<String> startQueue = new ArrayDeque<>(getContext().getOrderedContainers());
+        Map<String, DockerContainerConfig> machineName2config = getContext().getDockerEnvironment().getContainers();
         try {
             networks.createNetwork(getContext().getDockerEnvironment().getNetwork());
 
-            boolean restore = isRestoreEnabled(startOptions);
-
-            String machineName = startQueue.peek();
-            while (machineName != null) {
-                DockerContainerConfig container = dockerEnvironment.getContainers().get(machineName);
+            final boolean restore = isRestoreEnabled(startOptions);
+            for (String machineName : getContext().getOrderedContainers()) {
                 checkInterruption();
+                final DockerContainerConfig config = machineName2config.get(machineName);
                 sendStartingEvent(machineName);
                 try {
                     if (restore) {
-                        restoreMachine(machineName, container);
+                        restoreMachine(machineName, config);
                     } else {
-                        startMachine(machineName, container);
+                        startMachine(machineName, config);
                     }
                     sendRunningEvent(machineName);
                 } catch (InfrastructureException e) {
                     sendFailedEvent(machineName, e.getMessage());
                     throw e;
                 }
-                startQueue.poll();
-                machineName = startQueue.peek();
             }
         } catch (InfrastructureException | RuntimeException e) {
+            // when start failed and thread interrupted then runtime must be destroyed
             boolean interrupted = Thread.interrupted();
             try {
                 destroyRuntime(null);
@@ -606,6 +599,7 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
         public void await() throws InterruptedException, InfrastructureException {
             completionLatch.await();
             synchronized (this) {
+                stopCalled = false;
                 if (exception != null) {
                     try {
                         throw exception;

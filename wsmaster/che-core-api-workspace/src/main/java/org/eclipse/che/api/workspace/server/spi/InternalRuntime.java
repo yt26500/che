@@ -98,6 +98,8 @@ public abstract class InternalRuntime <T extends RuntimeContext> implements Runt
      *         when the context is already used
      * @throws InternalInfrastructureException
      *         when error that indicates system internal problem occurs
+     * @throws RuntimeStartInterruptedException
+     *         when start execution is cancelled
      * @throws InfrastructureException
      *         when any other error occurs
      */
@@ -135,7 +137,7 @@ public abstract class InternalRuntime <T extends RuntimeContext> implements Runt
      * @throws StateException
      *         when the context can't be stopped because otherwise it would be in inconsistent status
      *         (e.g. stop(interrupt) might not be allowed during start)
-     * @throws InfrastructureException
+     * @throws RuntimeStartInterruptedException
      *         when runtime start was successfully cancelled
      * @throws InfrastructureException
      *         when any other error occurs
