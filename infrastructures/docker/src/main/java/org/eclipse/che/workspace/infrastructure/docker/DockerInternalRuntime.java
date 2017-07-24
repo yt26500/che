@@ -206,8 +206,8 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
                 startQueue.poll();
                 machineName = startQueue.peek();
             }
-        } catch (InfrastructureException | InterruptedException | RuntimeException e) {
-            boolean interrupted = e instanceof InterruptedException || Thread.interrupted();
+        } catch (InfrastructureException | RuntimeException e) {
+            boolean interrupted = Thread.interrupted();
             try {
                 destroyRuntime(null);
             } catch (Exception destExc) {
@@ -256,8 +256,7 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
         return Collections.unmodifiableMap(properties);
     }
 
-    private void restoreMachine(String name, DockerContainerConfig originalConfig)
-            throws InfrastructureException, InterruptedException {
+    private void restoreMachine(String name, DockerContainerConfig originalConfig) throws InfrastructureException {
         RuntimeIdentity identity = getContext().getIdentity();
         try {
             SnapshotImpl snapshot = snapshotDao.getSnapshot(identity.getWorkspaceId(), identity.getEnvName(), name);
@@ -283,8 +282,7 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
         }
     }
 
-    private void startMachine(String name, DockerContainerConfig containerConfig)
-            throws InfrastructureException, InterruptedException {
+    private void startMachine(String name, DockerContainerConfig containerConfig) throws InfrastructureException {
         InternalMachineConfig machineCfg = getContext().getMachineConfigs().get(name);
 
         DockerMachine machine = containerStarter.startContainer(getContext().getDockerEnvironment().getNetwork(),
@@ -310,7 +308,11 @@ public class DockerInternalRuntime extends InternalRuntime<DockerRuntimeContext>
                                                                                machine.getServers(),
                                                                                serverCheckerFactory);
         readinessChecker.startAsync(new ServerReadinessHandler(name));
-        readinessChecker.await();
+        try {
+            readinessChecker.await();
+        } catch (InterruptedException ex) {
+            throw new RuntimeStartInterruptedException(getContext().getIdentity());
+        }
     }
 
     private void checkInterruption() throws RuntimeStartInterruptedException {
